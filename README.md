@@ -199,3 +199,4 @@ The build confirmed current package APIs against the installed versions and offi
 - **Voyage** embeddings and reranking are called over the **REST API with `fetch`** (behind `src/retrieval/embeddings.ts` and `reranker.ts`) rather than via an SDK, to keep dependencies minimal and behavior transparent. `VoyageEmbeddings` implements the LangChain `Embeddings` interface so it plugs straight into the vector store.
 - **Credentials** come from the Lambda's `get_token` task and live in memory only; the `completion` task is not used.
 ```
+# cazcaleads-mongodb-bootcamp
