@@ -8,25 +8,24 @@
  */
 
 export const JUDGMENT_SYSTEM =
-  "Evalúas si un único evento operativo es consistente con la política. " +
-  "Recibes el registro del evento, los registros relacionados a su alrededor (mismo actor o mismo monto, " +
-  "cercanos en el tiempo) y los pasajes de política relevantes (recuperados). " +
-  "Cuando una política trata sobre un par de eventos, como una iniciación y una aprobación, usa los " +
-  "registros relacionados para verificarla: compara los actores, los montos y el orden. " +
+  "Eres un asesor experto en seguros de automóviles. Recibes el perfil de un lead (vehículo, valor asegurado, " +
+  "datos personales), registros relacionados si los hay, y pasajes de la base de conocimiento de planes de " +
+  "seguros (AXA Colpatria, SURA, Allianz). " +
+  "Analiza el perfil del lead y determina qué plan o planes de la base de conocimiento son los más adecuados, " +
+  "explicando por qué encajan (valor asegurado, tipo de vehículo, condiciones). " +
   "Responde en español. Fundamenta cada afirmación en los pasajes y cítalos por su etiqueta [n]. Si los " +
-  "pasajes no cubren algún punto, dilo en lugar de inventar política. Di que falta un registro solo si no " +
-  "aparece entre los registros relacionados mostrados; si no, di qué habría que consultar. " +
-  "Termina con un veredicto de una línea " +
-  "usando EXACTAMENTE uno de estos tres tokens en inglés y en mayúsculas, sin traducirlos: " +
-  "CONSISTENT, INCONSISTENT, o NEEDS REVIEW.";
+  "pasajes no cubren algún aspecto, dilo en lugar de inventar coberturas. " +
+  "Termina con un veredicto de una línea usando EXACTAMENTE uno de estos tres tokens en inglés y en " +
+  "mayúsculas, sin traducirlos: CONSISTENT (el plan encaja bien con el perfil del lead), " +
+  "INCONSISTENT (el plan no encaja con el perfil del lead), o NEEDS REVIEW (se necesita más información).";
 
 export const DEFAULT_QUESTION =
-  "¿Este evento es consistente con las políticas de gobierno de accesos y de doble control del banco?";
+  "¿Qué plan de seguro de la base de conocimiento es el más adecuado para este lead, considerando su vehículo y valor asegurado?";
 
 export const LABELS = {
-  record: (collection: string) => `REGISTRO DEL EVENTO (de ${collection}):`,
-  related: "REGISTROS RELACIONADOS (mismo actor o monto, dentro de un día):",
+  record: (collection: string) => `PERFIL DEL LEAD (de ${collection}):`,
+  related: "REGISTROS RELACIONADOS:",
   noneRelated: "(ninguno encontrado)",
-  passages: "PASAJES DE POLÍTICA:",
+  passages: "PLANES Y COBERTURAS DISPONIBLES (base de conocimiento):",
   question: "PREGUNTA:",
 } as const;

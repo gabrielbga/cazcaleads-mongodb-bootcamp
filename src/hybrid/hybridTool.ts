@@ -24,24 +24,26 @@ const RELATED_WINDOW_MS = 24 * 60 * 60 * 1000;
 const RELATED_LIMIT = 8;
 
 /**
- * Find the records that plausibly belong to the same real-world transaction as
- * the subject: same actor, or same amount, within a day either side. Adapt this
- * to your own data; it is the one piece of `assess` that encodes what "related"
- * means in your domain.
+ * Find records related to the subject. For bank events: same actor or amount
+ * within a time window. For insurance leads: same vehicle (placa) or document.
+ * Falls back gracefully when none of these fields are present.
  */
 async function findRelatedRecords(record: Document): Promise<Document[]> {
   const cfg = getConfig();
   const db = await getDb();
 
-  const at = record.timestamp instanceof Date ? record.timestamp : null;
-  const sameTransaction: Filter<Document>[] = [{ userId: record.userId }];
-  if (typeof record.amount === "number" && record.amount > 0) {
-    sameTransaction.push({ amount: record.amount });
-  }
+  const sameEntity: Filter<Document>[] = [];
+  if (typeof record.userId === "string") sameEntity.push({ userId: record.userId });
+  if (typeof record.numero_documento === "string") sameEntity.push({ numero_documento: record.numero_documento });
+  if (typeof record.placa === "string") sameEntity.push({ placa: record.placa });
+  if (typeof record.amount === "number" && record.amount > 0) sameEntity.push({ amount: record.amount });
 
+  if (sameEntity.length === 0) return [];
+
+  const at = record.timestamp instanceof Date ? record.timestamp : null;
   const filter: Filter<Document> = {
     _id: { $ne: record._id },
-    $or: sameTransaction,
+    $or: sameEntity,
     ...(at
       ? {
           timestamp: {
@@ -55,7 +57,7 @@ async function findRelatedRecords(record: Document): Promise<Document[]> {
   return db
     .collection(cfg.EVENTS_COLLECTION)
     .find(filter)
-    .sort({ timestamp: 1 })
+    .sort({ fecha_aceptacion_habeas_data: 1, timestamp: 1 })
     .limit(RELATED_LIMIT)
     .toArray();
 }
@@ -84,8 +86,14 @@ export const assess = tool(
     const related = await findRelatedRecords(record);
 
     // Leg 2: retrieval. Seed the query with the record's salient fields so the
-    // most relevant policy passages surface.
-    const retrievalQuery = `${focus} action=${String(record.action)} amount=${String(record.amount)} channel=${String(record.channel)} status=${String(record.status)}`;
+    // most relevant passages surface. Field list covers both bank events
+    // (action, amount, channel, status) and insurance leads (marca, linea,
+    // modelo, valor_asegurado, estado) — undefined fields are skipped.
+    const SALIENT = ["action", "amount", "channel", "status", "marca", "linea", "modelo", "valor_asegurado", "estado"];
+    const salientParts = SALIENT
+      .filter((f) => record[f] !== undefined && record[f] !== null && typeof record[f] !== "object")
+      .map((f) => `${f}=${String(record[f])}`);
+    const retrievalQuery = [focus, ...salientParts].join(" ");
     const passages = await retrievePassages(retrievalQuery);
 
     // Fusion: reason over both, cite the passages.
@@ -117,11 +125,12 @@ export const assess = tool(
   {
     name: "assess",
     description:
-      "Assess a specific structured record against policy by fusing both legs: look up the record and retrieve " +
-      "the relevant policy passages, then produce a grounded, cited judgment. Use for questions like 'is event " +
-      "evt_0007 consistent with the dual-control policy?'. Takes the record's _id.",
+      "Assess a specific record by fusing both legs: look up the record in the structured collection and retrieve " +
+      "the relevant knowledge base passages, then produce a grounded, cited judgment or recommendation. Use for " +
+      "questions like '¿qué seguro le conviene al lead lead_0003?' or 'what insurance plan fits this lead?'. " +
+      "Takes the record's _id.",
     schema: z.object({
-      subjectId: z.string().describe("The _id of the record to assess, e.g. 'evt_0007'."),
+      subjectId: z.string().describe("The _id of the record to assess, e.g. 'lead_0003'."),
       question: z
         .string()
         .optional()
